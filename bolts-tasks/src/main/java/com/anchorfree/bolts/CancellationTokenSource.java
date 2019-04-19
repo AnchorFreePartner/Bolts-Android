@@ -9,6 +9,8 @@
  */
 package com.anchorfree.bolts;
 
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import java.io.Closeable;
 import java.util.ArrayList;
 import java.util.List;
@@ -31,7 +33,7 @@ public class CancellationTokenSource implements Closeable {
   private final Object lock = new Object();
   private final List<CancellationTokenRegistration> registrations = new ArrayList<>();
   private final ScheduledExecutorService executor = BoltsExecutors.scheduled();
-  private ScheduledFuture<?> scheduledCancellation;
+  @Nullable private ScheduledFuture<?> scheduledCancellation;
   private boolean cancellationRequested;
   private boolean closed;
 
@@ -54,6 +56,7 @@ public class CancellationTokenSource implements Closeable {
   /**
    * @return the token that can be passed to asynchronous method to control cancellation.
    */
+  @NonNull
   public CancellationToken getToken() {
     synchronized (lock) {
       throwIfClosed();
@@ -184,6 +187,7 @@ public class CancellationTokenSource implements Closeable {
     }
   }
 
+  @NonNull
   @Override
   public String toString() {
     return String.format(Locale.US, "%s@%s[cancellationRequested=%s]",

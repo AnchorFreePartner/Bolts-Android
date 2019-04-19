@@ -9,6 +9,7 @@
  */
 package com.anchorfree.bolts;
 
+import android.support.annotation.NonNull;
 import java.util.Locale;
 import java.util.concurrent.CancellationException;
 
@@ -61,6 +62,7 @@ public class CancellationToken {
     tokenSource.throwIfCancellationRequested();
   }
 
+  @NonNull
   @Override
   public String toString() {
     return String.format(Locale.US, "%s@%s[cancellationRequested=%s]",

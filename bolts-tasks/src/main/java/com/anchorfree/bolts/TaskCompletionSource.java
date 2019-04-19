@@ -1,5 +1,8 @@
 package com.anchorfree.bolts;
 
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
+
 /**
  * Allows safe orchestration of a task's completion, preventing the consumer from prematurely
  * completing the task. Essentially, it represents the producer side of a Task<TResult>, providing
@@ -8,7 +11,7 @@ package com.anchorfree.bolts;
  */
 public class TaskCompletionSource<TResult> {
 
-  private final Task<TResult> task;
+  @NonNull private final Task<TResult> task;
 
   /**
    * Creates a TaskCompletionSource that orchestrates a Task. This allows the creator of a task to
@@ -21,6 +24,7 @@ public class TaskCompletionSource<TResult> {
   /**
    * @return the Task associated with this TaskCompletionSource.
    */
+  @NonNull
   public Task<TResult> getTask() {
     return task;
   }
@@ -35,7 +39,7 @@ public class TaskCompletionSource<TResult> {
   /**
    * Sets the result on the Task if the Task hasn't already been completed.
    */
-  public boolean trySetResult(TResult result) {
+  public boolean trySetResult(@Nullable TResult result) {
     return task.trySetResult(result);
   }
 
@@ -58,7 +62,7 @@ public class TaskCompletionSource<TResult> {
   /**
    * Sets the result of the Task, throwing if the Task has already been completed.
    */
-  public void setResult(TResult result) {
+  public void setResult(@Nullable TResult result) {
     if (!trySetResult(result)) {
       throw new IllegalStateException("Cannot set the result of a completed task.");
     }

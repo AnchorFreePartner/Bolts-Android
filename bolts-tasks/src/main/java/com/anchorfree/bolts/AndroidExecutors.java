@@ -14,6 +14,7 @@ import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 
+import android.support.annotation.NonNull;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -39,7 +40,7 @@ import java.util.concurrent.TimeUnit;
 
   private static final AndroidExecutors INSTANCE = new AndroidExecutors();
 
-  private final Executor uiThread;
+  @NonNull private final Executor uiThread;
 
   private AndroidExecutors() {
     uiThread = new UIThreadExecutor();
@@ -70,6 +71,7 @@ import java.util.concurrent.TimeUnit;
    *
    * @return the newly created thread pool
    */
+  @NonNull
   public static ExecutorService newCachedThreadPool() {
     ThreadPoolExecutor executor =  new ThreadPoolExecutor(
         CORE_POOL_SIZE,
@@ -93,6 +95,7 @@ import java.util.concurrent.TimeUnit;
    * @param threadFactory the factory to use when creating new threads
    * @return the newly created thread pool
    */
+  @NonNull
   public static ExecutorService newCachedThreadPool(ThreadFactory threadFactory) {
     ThreadPoolExecutor executor =  new ThreadPoolExecutor(
             CORE_POOL_SIZE,
@@ -116,7 +119,7 @@ import java.util.concurrent.TimeUnit;
    * @param value true if should time out, else false
    */
   @SuppressLint("NewApi")
-  public static void allowCoreThreadTimeout(ThreadPoolExecutor executor, boolean value) {
+  public static void allowCoreThreadTimeout(@NonNull ThreadPoolExecutor executor, boolean value) {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.GINGERBREAD) {
       executor.allowCoreThreadTimeOut(value);
     }
@@ -125,6 +128,7 @@ import java.util.concurrent.TimeUnit;
   /**
    * An {@link java.util.concurrent.Executor} that executes tasks on the UI thread.
    */
+  @NonNull
   public static Executor uiThread() {
     return INSTANCE.uiThread;
   }

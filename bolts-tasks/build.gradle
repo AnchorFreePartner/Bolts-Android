@@ -9,7 +9,6 @@ configurations {
 
 android {
     compileSdkVersion rootProject.ext.compileSdkVersion
-    buildToolsVersion rootProject.ext.buildToolsVersion
 
     defaultConfig {
         minSdkVersion rootProject.ext.minSdkVersion
@@ -24,6 +23,7 @@ sourceSets {
 
 dependencies {
     testCompile 'junit:junit:4.12'
+    implementation 'com.android.support:support-annotations:28.0.0'
 }
 
 //region Maven

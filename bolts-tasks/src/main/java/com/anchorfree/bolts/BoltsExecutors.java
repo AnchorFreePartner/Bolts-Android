@@ -1,5 +1,6 @@
 package com.anchorfree.bolts;
 
+import android.support.annotation.NonNull;
 import java.util.Locale;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
@@ -21,9 +22,9 @@ import java.util.concurrent.ScheduledExecutorService;
     return javaRuntimeName.toLowerCase(Locale.US).contains("android");
   }
 
-  private final ExecutorService background;
+  @NonNull private final ExecutorService background;
   private final ScheduledExecutorService scheduled;
-  private final Executor immediate;
+  @NonNull private final Executor immediate;
 
   private BoltsExecutors() {
     background = !isAndroidRuntime()
@@ -36,6 +37,7 @@ import java.util.concurrent.ScheduledExecutorService;
   /**
    * An {@link java.util.concurrent.Executor} that executes tasks in parallel.
    */
+  @NonNull
   public static ExecutorService background() {
     return INSTANCE.background;
   }
@@ -49,7 +51,8 @@ import java.util.concurrent.ScheduledExecutorService;
    * the stack runs too deep, at which point it will delegate to {@link BoltsExecutors#background}
    * in order to trim the stack.
    */
-  /* package */ static Executor immediate() {
+  /* package */ @NonNull
+  static Executor immediate() {
     return INSTANCE.immediate;
   }
 
@@ -61,7 +64,7 @@ import java.util.concurrent.ScheduledExecutorService;
    */
   private static class ImmediateExecutor implements Executor {
     private static final int MAX_DEPTH = 15;
-    private ThreadLocal<Integer> executionDepth = new ThreadLocal<>();
+    @NonNull private ThreadLocal<Integer> executionDepth = new ThreadLocal<>();
 
     /**
      * Increments the depth.
@@ -98,7 +101,7 @@ import java.util.concurrent.ScheduledExecutorService;
     }
 
     @Override
-    public void execute(Runnable command) {
+    public void execute(@NonNull Runnable command) {
       int depth = incrementDepth();
       try {
         if (depth <= MAX_DEPTH) {

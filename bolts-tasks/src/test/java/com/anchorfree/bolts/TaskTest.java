@@ -9,6 +9,8 @@
  */
 package com.anchorfree.bolts;
 
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import com.anchorfree.bolts.AggregateException;
 import com.anchorfree.bolts.CancellationToken;
 import com.anchorfree.bolts.CancellationTokenSource;
@@ -40,10 +42,10 @@ import static org.junit.Assert.assertTrue;
 
 public class TaskTest {
 
-  @Rule
+  @NonNull @Rule
   public ExpectedException thrown = ExpectedException.none();
 
-  private void runTaskTest(Callable<Task<?>> callable) {
+  private void runTaskTest(@NonNull Callable<Task<?>> callable) {
     try {
       Task<?> task = callable.call();
       task.waitForCompletion();
@@ -130,7 +132,8 @@ public class TaskTest {
     final Task<Integer> cancelled = Task.cancelled();
 
     complete.continueWith(new Continuation<Integer, Void>() {
-      public Void then(Task<Integer> task) {
+      @Nullable
+      public Void then(@NonNull Task<Integer> task) {
         assertEquals(complete, task);
         assertTrue(task.isCompleted());
         assertEquals(5, task.getResult().intValue());
@@ -141,7 +144,8 @@ public class TaskTest {
     });
 
     error.continueWith(new Continuation<Integer, Void>() {
-      public Void then(Task<Integer> task) {
+      @Nullable
+      public Void then(@NonNull Task<Integer> task) {
         assertEquals(error, task);
         assertTrue(task.isCompleted());
         assertTrue(task.getError() instanceof RuntimeException);
@@ -152,6 +156,7 @@ public class TaskTest {
     });
 
     cancelled.continueWith(new Continuation<Integer, Void>() {
+      @Nullable
       public Void then(Task<Integer> task) {
         assertEquals(cancelled, task);
         assertTrue(cancelled.isCompleted());
@@ -166,11 +171,13 @@ public class TaskTest {
   public void testSynchronousChaining() {
     Task<Integer> first = Task.forResult(1);
     Task<Integer> second = first.continueWith(new Continuation<Integer, Integer>() {
+      @NonNull
       public Integer then(Task<Integer> task) {
         return 2;
       }
     });
     Task<Integer> third = second.continueWithTask(new Continuation<Integer, Task<Integer>>() {
+      @Nullable
       public Task<Integer> then(Task<Integer> task) {
         return Task.forResult(3);
       }
@@ -187,6 +194,7 @@ public class TaskTest {
   public void testSynchronousCancellation() {
     Task<Integer> first = Task.forResult(1);
     Task<Integer> second = first.continueWith(new Continuation<Integer, Integer>() {
+      @NonNull
       public Integer then(Task<Integer> task) {
         throw new CancellationException();
       }
@@ -202,6 +210,7 @@ public class TaskTest {
     cts.cancel();
     Task<Integer> first = Task.forResult(1);
     Task<Integer> second = first.continueWith(new Continuation<Integer, Integer>() {
+      @NonNull
       public Integer then(Task<Integer> task) {
         continuationRun.set(true);
         return 2;
@@ -216,6 +225,7 @@ public class TaskTest {
   public void testSynchronousTaskCancellation() {
     Task<Integer> first = Task.forResult(1);
     Task<Integer> second = first.continueWithTask(new Continuation<Integer, Task<Integer>>() {
+      @NonNull
       public Task<Integer> then(Task<Integer> task) {
         throw new CancellationException();
       }
@@ -227,14 +237,17 @@ public class TaskTest {
   @Test
   public void testBackgroundCall() {
     runTaskTest(new Callable<Task<?>>() {
+      @NonNull
       public Task<?> call() throws Exception {
         return Task.callInBackground(new Callable<Integer>() {
+          @NonNull
           public Integer call() throws Exception {
             Thread.sleep(100);
             return 5;
           }
         }).continueWith(new Continuation<Integer, Void>() {
-          public Void then(Task<Integer> task) {
+          @Nullable
+          public Void then(@NonNull Task<Integer> task) {
             assertEquals(5, task.getResult().intValue());
             return null;
           }
@@ -251,6 +264,7 @@ public class TaskTest {
     final Object cancelLock = new Object();
 
     Task<Integer> task = Task.callInBackground(new Callable<Integer>() {
+      @NonNull
       @Override
       public Integer call() throws Exception {
         synchronized (cancelLock) {
@@ -292,14 +306,17 @@ public class TaskTest {
 
     cts.cancel();
     runTaskTest(new Callable<Task<?>>() {
+      @NonNull
       public Task<?> call() throws Exception {
         return Task.callInBackground(new Callable<Integer>() {
+          @NonNull
           public Integer call() throws Exception {
             Thread.sleep(100);
             return 5;
           }
         }, cts.getToken()).continueWith(new Continuation<Integer, Void>() {
-          public Void then(Task<Integer> task) {
+          @Nullable
+          public Void then(@NonNull Task<Integer> task) {
             assertTrue(task.isCancelled());
             return null;
           }
@@ -311,6 +328,7 @@ public class TaskTest {
   @Test
   public void testBackgroundCallWaiting() throws Exception {
     Task<Integer> task = Task.callInBackground(new Callable<Integer>() {
+      @NonNull
       public Integer call() throws Exception {
         Thread.sleep(100);
         return 5;
@@ -326,6 +344,7 @@ public class TaskTest {
     final Object sync = new Object();
 
     Task<Integer> task = Task.callInBackground(new Callable<Integer>() {
+      @NonNull
       public Integer call() throws Exception {
         synchronized (sync) {
           sync.wait();
@@ -349,6 +368,7 @@ public class TaskTest {
   @Test
   public void testBackgroundCallWaitingOnError() throws Exception {
     Task<Integer> task = Task.callInBackground(new Callable<Integer>() {
+      @NonNull
       public Integer call() throws Exception {
         Thread.sleep(100);
         throw new RuntimeException();
@@ -362,12 +382,14 @@ public class TaskTest {
   @Test
   public void testBackgroundCallWaitOnCancellation() throws Exception {
     Task<Integer> task = Task.callInBackground(new Callable<Integer>() {
+      @NonNull
       public Integer call() throws Exception {
         Thread.sleep(100);
         return 5;
       }
     }).continueWithTask(new Continuation<Integer, Task<Integer>>() {
 
+      @NonNull
       public Task<Integer> then(Task<Integer> task) {
         return Task.cancelled();
       }
@@ -380,13 +402,16 @@ public class TaskTest {
   @Test
   public void testBackgroundError() {
     runTaskTest(new Callable<Task<?>>() {
+      @NonNull
       public Task<?> call() throws Exception {
         return Task.callInBackground(new Callable<Integer>() {
+          @NonNull
           public Integer call() throws Exception {
             throw new IllegalStateException();
           }
         }).continueWith(new Continuation<Integer, Void>() {
-          public Void then(Task<Integer> task) {
+          @Nullable
+          public Void then(@NonNull Task<Integer> task) {
             assertTrue(task.isFaulted());
             assertTrue(task.getError() instanceof IllegalStateException);
             return null;
@@ -399,13 +424,16 @@ public class TaskTest {
   @Test
   public void testBackgroundCancellation() {
     runTaskTest(new Callable<Task<?>>() {
+      @NonNull
       public Task<?> call() throws Exception {
         return Task.callInBackground(new Callable<Void>() {
+          @NonNull
           public Void call() throws Exception {
             throw new CancellationException();
           }
         }).continueWith(new Continuation<Void, Void>() {
-          public Void then(Task<Void> task) {
+          @Nullable
+          public Void then(@NonNull Task<Void> task) {
             assertTrue(task.isCancelled());
             return null;
           }
@@ -441,6 +469,7 @@ public class TaskTest {
   // runs in a separate method to ensure it is out of scope.
   private void startFailedTask() throws InterruptedException {
     Task.call(new Callable<Object>() {
+      @NonNull
       @Override
       public Object call() throws Exception {
         throw new RuntimeException();
@@ -460,10 +489,12 @@ public class TaskTest {
   @Test
   public void testWhenAnyResultFirstSuccess() {
     runTaskTest(new Callable<Task<?>>() {
+      @NonNull
       @Override
       public Task<?> call() throws Exception {
         final ArrayList<Task<Integer>> tasks = new ArrayList<>();
         final Task<Integer> firstToCompleteSuccess = Task.callInBackground(new Callable<Integer>() {
+          @NonNull
           @Override
           public Integer call() throws Exception {
             Thread.sleep(50);
@@ -474,8 +505,9 @@ public class TaskTest {
         tasks.add(firstToCompleteSuccess);
         tasks.addAll(launchTasksWithRandomCompletions(5));
         return Task.whenAnyResult(tasks).continueWith(new Continuation<Task<Integer>, Void>() {
+          @Nullable
           @Override
-          public Void then(Task<Task<Integer>> task) throws Exception {
+          public Void then(@NonNull Task<Task<Integer>> task) throws Exception {
             assertTrue(task.isCompleted());
             assertFalse(task.isFaulted());
             assertFalse(task.isCancelled());
@@ -494,10 +526,12 @@ public class TaskTest {
   @Test
   public void testWhenAnyFirstSuccess() {
     runTaskTest(new Callable<Task<?>>() {
+      @NonNull
       @Override
       public Task<?> call() throws Exception {
         final ArrayList<Task<?>> tasks = new ArrayList<>();
         final Task<String> firstToCompleteSuccess = Task.callInBackground(new Callable<String>() {
+          @NonNull
           @Override
           public String call() throws Exception {
             Thread.sleep(50);
@@ -508,8 +542,9 @@ public class TaskTest {
         tasks.add(firstToCompleteSuccess);
         tasks.addAll(launchTasksWithRandomCompletions(5));
         return Task.whenAny(tasks).continueWith(new Continuation<Task<?>, Object>() {
+          @Nullable
           @Override
-          public Object then(Task<Task<?>> task) throws Exception {
+          public Object then(@NonNull Task<Task<?>> task) throws Exception {
             assertTrue(task.isCompleted());
             assertFalse(task.isFaulted());
             assertFalse(task.isCancelled());
@@ -529,10 +564,12 @@ public class TaskTest {
   public void testWhenAnyResultFirstError() {
     final Exception error = new RuntimeException("This task failed.");
     runTaskTest(new Callable<Task<?>>() {
+      @NonNull
       @Override
       public Task<?> call() throws Exception {
         final ArrayList<Task<Integer>> tasks = new ArrayList<>();
         final Task<Integer> firstToCompleteError = Task.callInBackground(new Callable<Integer>() {
+          @NonNull
           @Override
           public Integer call() throws Exception {
             Thread.sleep(50);
@@ -543,8 +580,9 @@ public class TaskTest {
         tasks.add(firstToCompleteError);
         tasks.addAll(launchTasksWithRandomCompletions(5));
         return Task.whenAnyResult(tasks).continueWith(new Continuation<Task<Integer>, Object>() {
+          @Nullable
           @Override
-          public Object then(Task<Task<Integer>> task) throws Exception {
+          public Object then(@NonNull Task<Task<Integer>> task) throws Exception {
             assertTrue(task.isCompleted());
             assertFalse(task.isFaulted());
             assertFalse(task.isCancelled());
@@ -564,10 +602,12 @@ public class TaskTest {
   public void testWhenAnyFirstError() {
     final Exception error = new RuntimeException("This task failed.");
     runTaskTest(new Callable<Task<?>>() {
+      @NonNull
       @Override
       public Task<?> call() throws Exception {
         final ArrayList<Task<?>> tasks = new ArrayList<>();
         final Task<String> firstToCompleteError = Task.callInBackground(new Callable<String>() {
+          @NonNull
           @Override
           public String call() throws Exception {
             Thread.sleep(50);
@@ -578,8 +618,9 @@ public class TaskTest {
         tasks.add(firstToCompleteError);
         tasks.addAll(launchTasksWithRandomCompletions(5));
         return Task.whenAny(tasks).continueWith(new Continuation<Task<?>, Object>() {
+          @Nullable
           @Override
-          public Object then(Task<Task<?>> task) throws Exception {
+          public Object then(@NonNull Task<Task<?>> task) throws Exception {
             assertTrue(task.isCompleted());
             assertFalse(task.isFaulted());
             assertFalse(task.isCancelled());
@@ -598,10 +639,12 @@ public class TaskTest {
   @Test
   public void testWhenAnyResultFirstCancelled() {
     runTaskTest(new Callable<Task<?>>() {
+      @NonNull
       @Override
       public Task<?> call() throws Exception {
         final ArrayList<Task<Integer>> tasks = new ArrayList<>();
         final Task<Integer> firstToCompleteCancelled = Task.callInBackground(new Callable<Integer>() {
+          @NonNull
           @Override
           public Integer call() throws Exception {
             Thread.sleep(50);
@@ -613,8 +656,9 @@ public class TaskTest {
         tasks.add(firstToCompleteCancelled);
         tasks.addAll(launchTasksWithRandomCompletions(5));
         return Task.whenAnyResult(tasks).continueWith(new Continuation<Task<Integer>, Object>() {
+          @Nullable
           @Override
-          public Object then(Task<Task<Integer>> task) throws Exception {
+          public Object then(@NonNull Task<Task<Integer>> task) throws Exception {
             assertTrue(task.isCompleted());
             assertFalse(task.isFaulted());
             assertFalse(task.isCancelled());
@@ -632,10 +676,12 @@ public class TaskTest {
   @Test
   public void testWhenAnyFirstCancelled() {
     runTaskTest(new Callable<Task<?>>() {
+      @NonNull
       @Override
       public Task<?> call() throws Exception {
         final ArrayList<Task<?>> tasks = new ArrayList<>();
         final Task<String> firstToCompleteCancelled = Task.callInBackground(new Callable<String>() {
+          @NonNull
           @Override
           public String call() throws Exception {
             Thread.sleep(50);
@@ -646,8 +692,9 @@ public class TaskTest {
         tasks.add(firstToCompleteCancelled);
         tasks.addAll(launchTasksWithRandomCompletions(5));
         return Task.whenAny(tasks).continueWith(new Continuation<Task<?>, Object>() {
+          @Nullable
           @Override
-          public Object then(Task<Task<?>> task) throws Exception {
+          public Object then(@NonNull Task<Task<?>> task) throws Exception {
             assertTrue(task.isCompleted());
             assertFalse(task.isFaulted());
             assertFalse(task.isCancelled());
@@ -671,10 +718,12 @@ public class TaskTest {
    * @param numberOfTasksToLaunch The number of tasks to launch
    * @return A collection containing all the tasks that have been launched
    */
+  @NonNull
   private Collection<Task<Integer>> launchTasksWithRandomCompletions(int numberOfTasksToLaunch ) {
     final ArrayList<Task<Integer>> tasks = new ArrayList<>();
     for (int i=0; i < numberOfTasksToLaunch; i++) {
       Task<Integer> task = Task.callInBackground(new Callable<Integer>() {
+        @NonNull
         @Override
         public Integer call() throws Exception {
           Thread.sleep((long) (500 + (Math.random() * 100)));
@@ -695,11 +744,13 @@ public class TaskTest {
   @Test
   public void testWhenAllSuccess() {
     runTaskTest(new Callable<Task<?>>() {
+      @NonNull
       @Override
       public Task<?> call() throws Exception {
         final ArrayList<Task<Void>> tasks = new ArrayList<>();
         for (int i = 0; i < 20; i++) {
           Task<Void> task = Task.callInBackground(new Callable<Void>() {
+            @Nullable
             @Override
             public Void call() throws Exception {
               Thread.sleep((long) (Math.random() * 100));
@@ -709,8 +760,9 @@ public class TaskTest {
           tasks.add(task);
         }
         return Task.whenAll(tasks).continueWith(new Continuation<Void, Void>() {
+          @Nullable
           @Override
-          public Void then(Task<Void> task) {
+          public Void then(@NonNull Task<Void> task) {
             assertTrue(task.isCompleted());
             assertFalse(task.isFaulted());
             assertFalse(task.isCancelled());
@@ -730,12 +782,14 @@ public class TaskTest {
     final Exception error = new RuntimeException("This task failed.");
 
     runTaskTest(new Callable<Task<?>>() {
+      @NonNull
       @Override
       public Task<?> call() throws Exception {
         final ArrayList<Task<Void>> tasks = new ArrayList<>();
         for (int i = 0; i < 20; i++) {
           final int number = i;
           Task<Void> task = Task.callInBackground(new Callable<Void>() {
+            @Nullable
             @Override
             public Void call() throws Exception {
               Thread.sleep((long) (Math.random() * 100));
@@ -748,8 +802,9 @@ public class TaskTest {
           tasks.add(task);
         }
         return Task.whenAll(tasks).continueWith(new Continuation<Void, Void>() {
+          @Nullable
           @Override
-          public Void then(Task<Void> task) {
+          public Void then(@NonNull Task<Void> task) {
             assertTrue(task.isCompleted());
             assertTrue(task.isFaulted());
             assertFalse(task.isCancelled());
@@ -773,12 +828,14 @@ public class TaskTest {
     final Exception error1 = new RuntimeException("This task failed (1).");
 
     runTaskTest(new Callable<Task<?>>() {
+      @NonNull
       @Override
       public Task<?> call() throws Exception {
         final ArrayList<Task<Void>> tasks = new ArrayList<>();
         for (int i = 0; i < 20; i++) {
           final int number = i;
           Task<Void> task = Task.callInBackground(new Callable<Void>() {
+            @Nullable
             @Override
             public Void call() throws Exception {
               Thread.sleep((long) (number * 10));
@@ -793,8 +850,9 @@ public class TaskTest {
           tasks.add(task);
         }
         return Task.whenAll(tasks).continueWith(new Continuation<Void, Void>() {
+          @Nullable
           @Override
-          public Void then(Task<Void> task) {
+          public Void then(@NonNull Task<Void> task) {
             assertTrue(task.isCompleted());
             assertTrue(task.isFaulted());
             assertFalse(task.isCancelled());
@@ -818,6 +876,7 @@ public class TaskTest {
   @Test
   public void testWhenAllCancel() {
     runTaskTest(new Callable<Task<?>>() {
+      @NonNull
       @Override
       public Task<?> call() throws Exception {
         final ArrayList<Task<Void>> tasks = new ArrayList<>();
@@ -826,6 +885,7 @@ public class TaskTest {
 
           final int number = i;
           Task.callInBackground(new Callable<Void>() {
+            @Nullable
             @Override
             public Void call() throws Exception {
               Thread.sleep((long) (Math.random() * 100));
@@ -841,8 +901,9 @@ public class TaskTest {
           tasks.add(tcs.getTask());
         }
         return Task.whenAll(tasks).continueWith(new Continuation<Void, Void>() {
+          @Nullable
           @Override
-          public Void then(Task<Void> task) {
+          public Void then(@NonNull Task<Void> task) {
             assertTrue(task.isCompleted());
             assertFalse(task.isFaulted());
             assertTrue(task.isCancelled());
@@ -870,6 +931,7 @@ public class TaskTest {
   @Test
   public void testWhenAllResultSuccess() {
     runTaskTest(new Callable<Task<?>>() {
+      @NonNull
       @Override
       public Task<?> call() throws Exception {
         final List<Task<Integer>> tasks = new ArrayList<>();
@@ -885,8 +947,9 @@ public class TaskTest {
           tasks.add(task);
         }
         return Task.whenAllResult(tasks).continueWith(new Continuation<List<Integer>, Void>() {
+          @Nullable
           @Override
-          public Void then(Task<List<Integer>> task) {
+          public Void then(@NonNull Task<List<Integer>> task) {
             assertTrue(task.isCompleted());
             assertFalse(task.isFaulted());
             assertFalse(task.isCancelled());
@@ -908,6 +971,7 @@ public class TaskTest {
   @Test
   public void testAsyncChaining() {
     runTaskTest(new Callable<Task<?>>() {
+      @Nullable
       public Task<?> call() throws Exception {
         final ArrayList<Integer> sequence = new ArrayList<>();
         Task<Void> result = Task.forResult(null);
@@ -916,6 +980,7 @@ public class TaskTest {
           result = result.continueWithTask(new Continuation<Void, Task<Void>>() {
             public Task<Void> then(Task<Void> task) {
               return Task.callInBackground(new Callable<Void>() {
+                @Nullable
                 public Void call() throws Exception {
                   sequence.add(taskNumber);
                   return null;
@@ -925,6 +990,7 @@ public class TaskTest {
           });
         }
         result = result.continueWith(new Continuation<Void, Void>() {
+          @Nullable
           public Void then(Task<Void> task) {
             assertEquals(20, sequence.size());
             for (int i = 0; i < 20; i++) {
@@ -968,6 +1034,7 @@ public class TaskTest {
   @Test
   public void testOnSuccessTask() {
     Continuation<Integer, Task<Integer>> continuation = new Continuation<Integer, Task<Integer>>() {
+      @Nullable
       public Task<Integer> then(Task<Integer> task) {
         return Task.forResult(task.getResult() + 1);
       }
@@ -996,17 +1063,21 @@ public class TaskTest {
   public void testContinueWhile() {
     final AtomicInteger count = new AtomicInteger(0);
     runTaskTest(new Callable<Task<?>>() {
+      @NonNull
       public Task<?> call() throws Exception {
         return Task.forResult(null).continueWhile(new Callable<Boolean>() {
+          @NonNull
           public Boolean call() throws Exception {
             return count.get() < 10;
           }
         }, new Continuation<Void, Task<Void>>() {
+          @Nullable
           public Task<Void> then(Task<Void> task) throws Exception {
             count.incrementAndGet();
             return null;
           }
         }).continueWith(new Continuation<Void, Void>() {
+          @Nullable
           public Void then(Task<Void> task) throws Exception {
             assertEquals(10, count.get());
             return null;
@@ -1020,17 +1091,21 @@ public class TaskTest {
   public void testContinueWhileAsync() {
     final AtomicInteger count = new AtomicInteger(0);
     runTaskTest(new Callable<Task<?>>() {
+      @NonNull
       public Task<?> call() throws Exception {
         return Task.forResult(null).continueWhile(new Callable<Boolean>() {
+          @NonNull
           public Boolean call() throws Exception {
             return count.get() < 10;
           }
         }, new Continuation<Void, Task<Void>>() {
+          @Nullable
           public Task<Void> then(Task<Void> task) throws Exception {
             count.incrementAndGet();
             return null;
           }
         }, Executors.newCachedThreadPool()).continueWith(new Continuation<Void, Void>() {
+          @Nullable
           public Void then(Task<Void> task) throws Exception {
             assertEquals(10, count.get());
             return null;
@@ -1045,12 +1120,15 @@ public class TaskTest {
     final AtomicInteger count = new AtomicInteger(0);
     final CancellationTokenSource cts = new CancellationTokenSource();
     runTaskTest(new Callable<Task<?>>() {
+      @NonNull
       public Task<?> call() throws Exception {
         return Task.forResult(null).continueWhile(new Callable<Boolean>() {
+                                                    @NonNull
                                                     public Boolean call() throws Exception {
                                                       return count.get() < 10;
                                                     }
                                                   }, new Continuation<Void, Task<Void>>() {
+                                                    @Nullable
                                                     public Task<Void> then(Task<Void> task)
                                                         throws Exception {
                                                       if (count.incrementAndGet() == 5) {
@@ -1060,7 +1138,8 @@ public class TaskTest {
                                                     }
                                                   }, Executors.newCachedThreadPool(),
             cts.getToken()).continueWith(new Continuation<Void, Void>() {
-          public Void then(Task<Void> task) throws Exception {
+          @Nullable
+          public Void then(@NonNull Task<Void> task) throws Exception {
             assertTrue(task.isCancelled());
             assertEquals(5, count.get());
             return null;
@@ -1075,6 +1154,7 @@ public class TaskTest {
     final RuntimeException exception = new RuntimeException("BAD EXECUTORS");
 
     Task.call(new Callable<Integer>() {
+      @NonNull
       public Integer call() throws Exception {
         return 1;
       }
@@ -1084,8 +1164,9 @@ public class TaskTest {
         throw exception;
       }
     }).continueWith(new Continuation<Integer, Object>() {
+      @Nullable
       @Override
-      public Object then(Task<Integer> task) throws Exception {
+      public Object then(@NonNull Task<Integer> task) throws Exception {
         assertTrue(task.isFaulted());
         assertTrue(task.getError() instanceof ExecutorException);
         assertEquals(exception, task.getError().getCause());
@@ -1100,12 +1181,13 @@ public class TaskTest {
     final RuntimeException exception = new RuntimeException("BAD EXECUTORS");
 
     Task.call(new Callable<Integer>() {
+      @NonNull
       public Integer call() throws Exception {
         return 1;
       }
     }).continueWith(new Continuation<Integer, Integer>() {
       @Override
-      public Integer then(Task<Integer> task) throws Exception {
+      public Integer then(@NonNull Task<Integer> task) throws Exception {
         return task.getResult();
       }
     }, new Executor() {
@@ -1114,8 +1196,9 @@ public class TaskTest {
         throw exception;
       }
     }).continueWith(new Continuation<Integer, Object>() {
+      @Nullable
       @Override
-      public Object then(Task<Integer> task) throws Exception {
+      public Object then(@NonNull Task<Integer> task) throws Exception {
         assertTrue(task.isFaulted());
         assertTrue(task.getError() instanceof ExecutorException);
         assertEquals(exception, task.getError().getCause());
@@ -1130,6 +1213,7 @@ public class TaskTest {
     final RuntimeException exception = new RuntimeException("BAD EXECUTORS");
 
     Task.call(new Callable<Integer>() {
+      @NonNull
       public Integer call() throws Exception {
         return 1;
       }
@@ -1144,8 +1228,9 @@ public class TaskTest {
         throw exception;
       }
     }).continueWith(new Continuation<Integer, Object>() {
+      @Nullable
       @Override
-      public Object then(Task<Integer> task) throws Exception {
+      public Object then(@NonNull Task<Integer> task) throws Exception {
         assertTrue(task.isFaulted());
         assertTrue(task.getError() instanceof ExecutorException);
         assertEquals(exception, task.getError().getCause());

@@ -9,6 +9,7 @@
  */
 package com.anchorfree.bolts;
 
+import android.support.annotation.Nullable;
 import java.io.Closeable;
 
 /**
@@ -19,8 +20,8 @@ import java.io.Closeable;
 public class CancellationTokenRegistration implements Closeable {
 
   private final Object lock = new Object();
-  private CancellationTokenSource tokenSource;
-  private Runnable action;
+  @Nullable private CancellationTokenSource tokenSource;
+  @Nullable private Runnable action;
   private boolean closed;
 
   /* package */ CancellationTokenRegistration(CancellationTokenSource tokenSource, Runnable action) {

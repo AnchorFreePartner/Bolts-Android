@@ -9,6 +9,8 @@
  */
 package com.anchorfree.bolts;
 
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
@@ -51,7 +53,7 @@ public class AggregateException extends Exception {
    * @param innerThrowables
    *            The exceptions that are the cause of the current exception.
    */
-  public AggregateException(String detailMessage, List<? extends Throwable> innerThrowables) {
+  public AggregateException(String detailMessage, @Nullable List<? extends Throwable> innerThrowables) {
     super(detailMessage,
         innerThrowables != null && innerThrowables.size() > 0 ? innerThrowables.get(0) : null);
     this.innerThrowables = Collections.unmodifiableList(innerThrowables);
@@ -77,7 +79,7 @@ public class AggregateException extends Exception {
   }
 
   @Override
-  public void printStackTrace(PrintStream err) {
+  public void printStackTrace(@NonNull PrintStream err) {
     super.printStackTrace(err);
 
     int currentIndex = -1;
@@ -92,7 +94,7 @@ public class AggregateException extends Exception {
   }
 
   @Override
-  public void printStackTrace(PrintWriter err) {
+  public void printStackTrace(@NonNull PrintWriter err) {
     super.printStackTrace(err);
 
     int currentIndex = -1;
@@ -109,6 +111,7 @@ public class AggregateException extends Exception {
   /**
    * @deprecated Please use {@link #getInnerThrowables()} instead.
    */
+  @NonNull
   @Deprecated
   public List<Exception> getErrors() {
     List<Exception> errors = new ArrayList<Exception>();

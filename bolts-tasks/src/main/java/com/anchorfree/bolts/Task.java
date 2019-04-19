@@ -9,6 +9,8 @@
  */
 package com.anchorfree.bolts;
 
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -91,11 +93,11 @@ public class Task<TResult> {
   private final Object lock = new Object();
   private boolean complete;
   private boolean cancelled;
-  private TResult result;
+  @Nullable private TResult result;
   private Exception error;
   private boolean errorHasBeenObserved;
-  private UnobservedErrorNotifier unobservedErrorNotifier;
-  private List<Continuation<TResult, Void>> continuations = new ArrayList<>();
+  @Nullable private UnobservedErrorNotifier unobservedErrorNotifier;
+  @Nullable private List<Continuation<TResult, Void>> continuations = new ArrayList<>();
 
   /* package */ Task() {
   }
@@ -151,6 +153,7 @@ public class Task<TResult> {
   /**
    * @return The result of the task, if set. {@code null} otherwise.
    */
+  @Nullable
   public TResult getResult() {
     synchronized (lock) {
       return result;
@@ -189,7 +192,7 @@ public class Task<TResult> {
    * @return {@code true} if the task completed (has a result, an error, or was cancelled).
    *         {@code false} otherwise.
    */
-  public boolean waitForCompletion(long duration, TimeUnit timeUnit) throws InterruptedException {
+  public boolean waitForCompletion(long duration, @NonNull TimeUnit timeUnit) throws InterruptedException {
     synchronized (lock) {
       if (!isCompleted()) {
         lock.wait(timeUnit.toMillis(duration));
@@ -201,8 +204,9 @@ public class Task<TResult> {
   /**
    * Creates a completed task with the given value.
    */
+  @NonNull
   @SuppressWarnings("unchecked")
-  public static <TResult> Task<TResult> forResult(TResult value) {
+  public static <TResult> Task<TResult> forResult(@Nullable TResult value) {
     if (value == null) {
       return (Task<TResult>) TASK_NULL;
     }
@@ -217,6 +221,7 @@ public class Task<TResult> {
   /**
    * Creates a faulted task with the given error.
    */
+  @NonNull
   public static <TResult> Task<TResult> forError(Exception error) {
     com.anchorfree.bolts.TaskCompletionSource<TResult> tcs = new com.anchorfree.bolts.TaskCompletionSource<>();
     tcs.setError(error);
@@ -226,6 +231,7 @@ public class Task<TResult> {
   /**
    * Creates a cancelled task.
    */
+  @NonNull
   @SuppressWarnings("unchecked")
   public static <TResult> Task<TResult> cancelled() {
     return (Task<TResult>) TASK_CANCELLED;
@@ -237,6 +243,7 @@ public class Task<TResult> {
    * @param delay The number of milliseconds to wait before completing the returned task. Zero and
    *              negative values are treated as requests for immediate execution.
    */
+  @NonNull
   public static Task<Void> delay(long delay) {
     return delay(delay, BoltsExecutors.scheduled(), null);
   }
@@ -249,11 +256,13 @@ public class Task<TResult> {
    * @param cancellationToken The optional cancellation token that will be checked prior to
    *                          completing the returned task.
    */
+  @NonNull
   public static Task<Void> delay(long delay, CancellationToken cancellationToken) {
     return delay(delay, BoltsExecutors.scheduled(), cancellationToken);
   }
 
-  /* package */ static Task<Void> delay(long delay, ScheduledExecutorService executor, final CancellationToken cancellationToken) {
+  /* package */ @NonNull
+  static Task<Void> delay(long delay, @NonNull ScheduledExecutorService executor, @Nullable final CancellationToken cancellationToken) {
     if (cancellationToken != null && cancellationToken.isCancellationRequested()) {
       return Task.cancelled();
     }
@@ -287,6 +296,7 @@ public class Task<TResult> {
    * Makes a fluent cast of a Task's result possible, avoiding an extra continuation just to cast
    * the type of the result.
    */
+  @NonNull
   public <TOut> Task<TOut> cast() {
     @SuppressWarnings("unchecked")
     Task<TOut> task = (Task<TOut>) this;
@@ -296,10 +306,12 @@ public class Task<TResult> {
   /**
    * Turns a Task<T> into a Task<Void>, dropping any result.
    */
+  @NonNull
   public Task<Void> makeVoid() {
     return this.continueWithTask(new Continuation<TResult, Task<Void>>() {
+      @Nullable
       @Override
-      public Task<Void> then(Task<TResult> task) throws Exception {
+      public Task<Void> then(@NonNull Task<TResult> task) throws Exception {
         if (task.isCancelled()) {
           return Task.cancelled();
         }
@@ -317,14 +329,14 @@ public class Task<TResult> {
    * If you want to cancel the resulting Task throw a {@link java.util.concurrent.CancellationException}
    * from the callable.
    */
-  public static <TResult> Task<TResult> callInBackground(Callable<TResult> callable) {
+  public static <TResult> Task<TResult> callInBackground(@NonNull Callable<TResult> callable) {
     return call(callable, BACKGROUND_EXECUTOR, null);
   }
 
   /**
    * Invokes the callable on a background thread, returning a Task to represent the operation.
    */
-  public static <TResult> Task<TResult> callInBackground(Callable<TResult> callable, CancellationToken ct) {
+  public static <TResult> Task<TResult> callInBackground(@NonNull Callable<TResult> callable, CancellationToken ct) {
     return call(callable, BACKGROUND_EXECUTOR, ct);
   }
 
@@ -334,15 +346,15 @@ public class Task<TResult> {
    * If you want to cancel the resulting Task throw a {@link java.util.concurrent.CancellationException}
    * from the callable.
    */
-  public static <TResult> Task<TResult> call(final Callable<TResult> callable, Executor executor) {
+  public static <TResult> Task<TResult> call(@NonNull final Callable<TResult> callable, @NonNull Executor executor) {
     return call(callable, executor, null);
   }
 
   /**
    * Invokes the callable using the given executor, returning a Task to represent the operation.
    */
-  public static <TResult> Task<TResult> call(final Callable<TResult> callable, Executor executor,
-      final CancellationToken ct) {
+  public static <TResult> Task<TResult> call(@NonNull final Callable<TResult> callable, @NonNull Executor executor,
+      @Nullable final CancellationToken ct) {
     final com.anchorfree.bolts.TaskCompletionSource<TResult> tcs = new com.anchorfree.bolts.TaskCompletionSource<>();
     try {
       executor.execute(new Runnable() {
@@ -375,14 +387,14 @@ public class Task<TResult> {
    * If you want to cancel the resulting Task throw a {@link java.util.concurrent.CancellationException}
    * from the callable.
    */
-  public static <TResult> Task<TResult> call(final Callable<TResult> callable) {
+  public static <TResult> Task<TResult> call(@NonNull final Callable<TResult> callable) {
     return call(callable, IMMEDIATE_EXECUTOR, null);
   }
 
   /**
    * Invokes the callable on the current thread, producing a Task.
    */
-  public static <TResult> Task<TResult> call(final Callable<TResult> callable, CancellationToken ct) {
+  public static <TResult> Task<TResult> call(@NonNull final Callable<TResult> callable, CancellationToken ct) {
     return call(callable, IMMEDIATE_EXECUTOR, ct);
   }
 
@@ -398,6 +410,7 @@ public class Task<TResult> {
    * @return A task that represents the completion of one of the supplied tasks. 
    *         The return task's result is the task that completed.
    */
+  @Nullable
   public static <TResult> Task<Task<TResult>> whenAnyResult(Collection<? extends Task<TResult>> tasks) {
     if (tasks.size() == 0) {
       return Task.forResult(null);
@@ -408,8 +421,9 @@ public class Task<TResult> {
 
     for (Task<TResult> task : tasks) {
       task.continueWith(new Continuation<TResult, Void>() {
+        @Nullable
         @Override
-        public Void then(Task<TResult> task) {
+        public Void then(@NonNull Task<TResult> task) {
           if (isAnyTaskComplete.compareAndSet(false, true)) {
             firstCompleted.setResult(task);
           } else {
@@ -434,6 +448,7 @@ public class Task<TResult> {
    * @return A task that represents the completion of one of the supplied tasks. 
    *         The return task's Result is the task that completed.
    */
+  @Nullable
   @SuppressWarnings("unchecked")
   public static Task<Task<?>> whenAny(Collection<? extends Task<?>> tasks) {
     if (tasks.size() == 0) {
@@ -445,8 +460,9 @@ public class Task<TResult> {
       
     for (Task<?> task : tasks) {
       ((Task<Object>) task).continueWith(new Continuation<Object, Void>() {
+        @Nullable
         @Override
-        public Void then(Task<Object> task) {
+        public Void then(@NonNull Task<Object> task) {
           if (isAnyTaskComplete.compareAndSet(false, true)) {
             firstCompleted.setResult(task);
           } else {
@@ -484,7 +500,8 @@ public class Task<TResult> {
    * @param tasks The tasks that the return value will wait for before completing.
    * @return A Task that will resolve to {@code List&lt;TResult&gt;} when all the tasks are resolved.
    */
-  public static <TResult> Task<List<TResult>> whenAllResult(final Collection<? extends Task<TResult>> tasks) {
+  @NonNull
+  public static <TResult> Task<List<TResult>> whenAllResult(@NonNull final Collection<? extends Task<TResult>> tasks) {
     return whenAll(tasks).onSuccess(new Continuation<Void, List<TResult>>() {
       @Override
       public List<TResult> then(Task<Void> task) throws Exception {
@@ -521,6 +538,7 @@ public class Task<TResult> {
    * @param tasks The tasks that the return value will wait for before completing.
    * @return A Task that will resolve to {@code Void} when all the tasks are resolved.
    */
+  @Nullable
   public static Task<Void> whenAll(Collection<? extends Task<?>> tasks) {
     if (tasks.size() == 0) {
       return Task.forResult(null);
@@ -536,8 +554,9 @@ public class Task<TResult> {
       @SuppressWarnings("unchecked")
       Task<Object> t = (Task<Object>) task;
       t.continueWith(new Continuation<Object, Void>() {
+        @Nullable
         @Override
-        public Void then(Task<Object> task) {
+        public Void then(@NonNull Task<Object> task) {
           if (task.isFaulted()) {
             synchronized (errorLock) {
               causes.add(task.getError());
@@ -576,8 +595,9 @@ public class Task<TResult> {
    * Continues a task with the equivalent of a Task-based while loop, where the body of the loop is
    * a task continuation.
    */
-  public Task<Void> continueWhile(Callable<Boolean> predicate,
-      Continuation<Void, Task<Void>> continuation) {
+  @NonNull
+  public Task<Void> continueWhile(@NonNull Callable<Boolean> predicate,
+      @NonNull Continuation<Void, Task<Void>> continuation) {
     return continueWhile(predicate, continuation, IMMEDIATE_EXECUTOR, null);
   }
 
@@ -585,8 +605,9 @@ public class Task<TResult> {
    * Continues a task with the equivalent of a Task-based while loop, where the body of the loop is
    * a task continuation.
    */
-  public Task<Void> continueWhile(Callable<Boolean> predicate,
-      Continuation<Void, Task<Void>> continuation, CancellationToken ct) {
+  @NonNull
+  public Task<Void> continueWhile(@NonNull Callable<Boolean> predicate,
+      @NonNull Continuation<Void, Task<Void>> continuation, CancellationToken ct) {
     return continueWhile(predicate, continuation, IMMEDIATE_EXECUTOR, ct);
   }
 
@@ -594,8 +615,9 @@ public class Task<TResult> {
    * Continues a task with the equivalent of a Task-based while loop, where the body of the loop is
    * a task continuation.
    */
-  public Task<Void> continueWhile(final Callable<Boolean> predicate,
-      final Continuation<Void, Task<Void>> continuation, final Executor executor) {
+  @NonNull
+  public Task<Void> continueWhile(@NonNull final Callable<Boolean> predicate,
+      @NonNull final Continuation<Void, Task<Void>> continuation, @NonNull final Executor executor) {
     return continueWhile(predicate, continuation, executor, null);
   }
 
@@ -603,12 +625,14 @@ public class Task<TResult> {
    * Continues a task with the equivalent of a Task-based while loop, where the body of the loop is
    * a task continuation.
    */
-  public Task<Void> continueWhile(final Callable<Boolean> predicate,
-      final Continuation<Void, Task<Void>> continuation, final Executor executor,
-      final CancellationToken ct) {
+  @NonNull
+  public Task<Void> continueWhile(@NonNull final Callable<Boolean> predicate,
+      @NonNull final Continuation<Void, Task<Void>> continuation, @NonNull final Executor executor,
+      @Nullable final CancellationToken ct) {
     final Capture<Continuation<Void, Task<Void>>> predicateContinuation =
         new Capture<>();
     predicateContinuation.set(new Continuation<Void, Task<Void>>() {
+      @Nullable
       @Override
       public Task<Void> then(Task<Void> task) throws Exception {
         if (ct != null && ct.isCancellationRequested()) {
@@ -630,8 +654,9 @@ public class Task<TResult> {
    * completes after the continuation has finished running. This allows the continuation to be
    * scheduled on different thread.
    */
+  @NonNull
   public <TContinuationResult> Task<TContinuationResult> continueWith(
-      final Continuation<TResult, TContinuationResult> continuation, final Executor executor) {
+      @NonNull final Continuation<TResult, TContinuationResult> continuation, @NonNull final Executor executor) {
     return continueWith(continuation, executor, null);
   }
 
@@ -640,8 +665,9 @@ public class Task<TResult> {
    * completes after the continuation has finished running. This allows the continuation to be
    * scheduled on different thread.
    */
+  @NonNull
   public <TContinuationResult> Task<TContinuationResult> continueWith(
-      final Continuation<TResult, TContinuationResult> continuation, final Executor executor,
+      @NonNull final Continuation<TResult, TContinuationResult> continuation, @NonNull final Executor executor,
       final CancellationToken ct) {
     boolean completed;
     final com.anchorfree.bolts.TaskCompletionSource<TContinuationResult> tcs = new com.anchorfree.bolts.TaskCompletionSource<>();
@@ -649,6 +675,7 @@ public class Task<TResult> {
       completed = this.isCompleted();
       if (!completed) {
         this.continuations.add(new Continuation<TResult, Void>() {
+          @Nullable
           @Override
           public Void then(Task<TResult> task) {
             completeImmediately(tcs, continuation, task, executor, ct);
@@ -667,8 +694,9 @@ public class Task<TResult> {
    * Adds a synchronous continuation to this task, returning a new task that completes after the
    * continuation has finished running.
    */
+  @NonNull
   public <TContinuationResult> Task<TContinuationResult> continueWith(
-      Continuation<TResult, TContinuationResult> continuation) {
+      @NonNull Continuation<TResult, TContinuationResult> continuation) {
     return continueWith(continuation, IMMEDIATE_EXECUTOR, null);
   }
 
@@ -676,8 +704,9 @@ public class Task<TResult> {
    * Adds a synchronous continuation to this task, returning a new task that completes after the
    * continuation has finished running.
    */
+  @NonNull
   public <TContinuationResult> Task<TContinuationResult> continueWith(
-      Continuation<TResult, TContinuationResult> continuation, CancellationToken ct) {
+      @NonNull Continuation<TResult, TContinuationResult> continuation, CancellationToken ct) {
     return continueWith(continuation, IMMEDIATE_EXECUTOR, ct);
   }
 
@@ -685,8 +714,9 @@ public class Task<TResult> {
    * Adds an Task-based continuation to this task that will be scheduled using the executor,
    * returning a new task that completes after the task returned by the continuation has completed.
    */
+  @NonNull
   public <TContinuationResult> Task<TContinuationResult> continueWithTask(
-      final Continuation<TResult, Task<TContinuationResult>> continuation, final Executor executor) {
+      @NonNull final Continuation<TResult, Task<TContinuationResult>> continuation, @NonNull final Executor executor) {
     return continueWithTask(continuation, executor, null);
   }
 
@@ -694,8 +724,9 @@ public class Task<TResult> {
    * Adds an Task-based continuation to this task that will be scheduled using the executor,
    * returning a new task that completes after the task returned by the continuation has completed.
    */
+  @NonNull
   public <TContinuationResult> Task<TContinuationResult> continueWithTask(
-      final Continuation<TResult, Task<TContinuationResult>> continuation, final Executor executor,
+      @NonNull final Continuation<TResult, Task<TContinuationResult>> continuation, @NonNull final Executor executor,
       final CancellationToken ct) {
     boolean completed;
     final com.anchorfree.bolts.TaskCompletionSource<TContinuationResult> tcs = new com.anchorfree.bolts.TaskCompletionSource<>();
@@ -703,6 +734,7 @@ public class Task<TResult> {
       completed = this.isCompleted();
       if (!completed) {
         this.continuations.add(new Continuation<TResult, Void>() {
+          @Nullable
           @Override
           public Void then(Task<TResult> task) {
             completeAfterTask(tcs, continuation, task, executor, ct);
@@ -721,8 +753,9 @@ public class Task<TResult> {
    * Adds an asynchronous continuation to this task, returning a new task that completes after the
    * task returned by the continuation has completed.
    */
+  @NonNull
   public <TContinuationResult> Task<TContinuationResult> continueWithTask(
-      Continuation<TResult, Task<TContinuationResult>> continuation) {
+      @NonNull Continuation<TResult, Task<TContinuationResult>> continuation) {
     return continueWithTask(continuation, IMMEDIATE_EXECUTOR, null);
   }
 
@@ -730,8 +763,9 @@ public class Task<TResult> {
    * Adds an asynchronous continuation to this task, returning a new task that completes after the
    * task returned by the continuation has completed.
    */
+  @NonNull
   public <TContinuationResult> Task<TContinuationResult> continueWithTask(
-      Continuation<TResult, Task<TContinuationResult>> continuation, CancellationToken ct) {
+      @NonNull Continuation<TResult, Task<TContinuationResult>> continuation, CancellationToken ct) {
     return continueWithTask(continuation, IMMEDIATE_EXECUTOR, ct);
   }
 
@@ -739,8 +773,9 @@ public class Task<TResult> {
    * Runs a continuation when a task completes successfully, forwarding along
    * {@link java.lang.Exception} or cancellation.
    */
+  @NonNull
   public <TContinuationResult> Task<TContinuationResult> onSuccess(
-      final Continuation<TResult, TContinuationResult> continuation, Executor executor) {
+      @NonNull final Continuation<TResult, TContinuationResult> continuation, @NonNull Executor executor) {
     return onSuccess(continuation, executor, null);
   }
 
@@ -748,12 +783,13 @@ public class Task<TResult> {
    * Runs a continuation when a task completes successfully, forwarding along
    * {@link java.lang.Exception} or cancellation.
    */
+  @NonNull
   public <TContinuationResult> Task<TContinuationResult> onSuccess(
-      final Continuation<TResult, TContinuationResult> continuation, Executor executor,
-      final CancellationToken ct) {
+      @NonNull final Continuation<TResult, TContinuationResult> continuation, @NonNull Executor executor,
+      @Nullable final CancellationToken ct) {
     return continueWithTask(new Continuation<TResult, Task<TContinuationResult>>() {
       @Override
-      public Task<TContinuationResult> then(Task<TResult> task) {
+      public Task<TContinuationResult> then(@NonNull Task<TResult> task) {
         if (ct != null && ct.isCancellationRequested()) {
           return Task.cancelled();
         }
@@ -773,8 +809,9 @@ public class Task<TResult> {
    * Runs a continuation when a task completes successfully, forwarding along
    * {@link java.lang.Exception}s or cancellation.
    */
+  @NonNull
   public <TContinuationResult> Task<TContinuationResult> onSuccess(
-      final Continuation<TResult, TContinuationResult> continuation) {
+      @NonNull final Continuation<TResult, TContinuationResult> continuation) {
     return onSuccess(continuation, IMMEDIATE_EXECUTOR, null);
   }
 
@@ -782,8 +819,9 @@ public class Task<TResult> {
    * Runs a continuation when a task completes successfully, forwarding along
    * {@link java.lang.Exception}s or cancellation.
    */
+  @NonNull
   public <TContinuationResult> Task<TContinuationResult> onSuccess(
-      final Continuation<TResult, TContinuationResult> continuation, CancellationToken ct) {
+      @NonNull final Continuation<TResult, TContinuationResult> continuation, CancellationToken ct) {
     return onSuccess(continuation, IMMEDIATE_EXECUTOR, ct);
   }
 
@@ -791,8 +829,9 @@ public class Task<TResult> {
    * Runs a continuation when a task completes successfully, forwarding along
    * {@link java.lang.Exception}s or cancellation.
    */
+  @NonNull
   public <TContinuationResult> Task<TContinuationResult> onSuccessTask(
-      final Continuation<TResult, Task<TContinuationResult>> continuation, Executor executor) {
+      @NonNull final Continuation<TResult, Task<TContinuationResult>> continuation, @NonNull Executor executor) {
     return onSuccessTask(continuation, executor, null);
   }
 
@@ -800,12 +839,13 @@ public class Task<TResult> {
    * Runs a continuation when a task completes successfully, forwarding along
    * {@link java.lang.Exception}s or cancellation.
    */
+  @NonNull
   public <TContinuationResult> Task<TContinuationResult> onSuccessTask(
-      final Continuation<TResult, Task<TContinuationResult>> continuation, Executor executor,
-      final CancellationToken ct) {
+      @NonNull final Continuation<TResult, Task<TContinuationResult>> continuation, @NonNull Executor executor,
+      @Nullable final CancellationToken ct) {
     return continueWithTask(new Continuation<TResult, Task<TContinuationResult>>() {
       @Override
-      public Task<TContinuationResult> then(Task<TResult> task) {
+      public Task<TContinuationResult> then(@NonNull Task<TResult> task) {
         if (ct != null && ct.isCancellationRequested()) {
           return Task.cancelled();
         }
@@ -825,8 +865,9 @@ public class Task<TResult> {
    * Runs a continuation when a task completes successfully, forwarding along
    * {@link java.lang.Exception}s or cancellation.
    */
+  @NonNull
   public <TContinuationResult> Task<TContinuationResult> onSuccessTask(
-      final Continuation<TResult, Task<TContinuationResult>> continuation) {
+      @NonNull final Continuation<TResult, Task<TContinuationResult>> continuation) {
     return onSuccessTask(continuation, IMMEDIATE_EXECUTOR);
   }
 
@@ -834,8 +875,9 @@ public class Task<TResult> {
    * Runs a continuation when a task completes successfully, forwarding along
    * {@link java.lang.Exception}s or cancellation.
    */
+  @NonNull
   public <TContinuationResult> Task<TContinuationResult> onSuccessTask(
-      final Continuation<TResult, Task<TContinuationResult>> continuation,
+      @NonNull final Continuation<TResult, Task<TContinuationResult>> continuation,
       CancellationToken ct) {
     return onSuccessTask(continuation, IMMEDIATE_EXECUTOR, ct);
   }
@@ -856,9 +898,9 @@ public class Task<TResult> {
    *          scheduled on a different thread).
    */
   private static <TContinuationResult, TResult> void completeImmediately(
-      final com.anchorfree.bolts.TaskCompletionSource<TContinuationResult> tcs,
-      final Continuation<TResult, TContinuationResult> continuation, final Task<TResult> task,
-      Executor executor, final CancellationToken ct) {
+      @NonNull final com.anchorfree.bolts.TaskCompletionSource<TContinuationResult> tcs,
+      @NonNull final Continuation<TResult, TContinuationResult> continuation, final Task<TResult> task,
+      @NonNull Executor executor, @Nullable final CancellationToken ct) {
     try {
       executor.execute(new Runnable() {
         @Override
@@ -900,10 +942,10 @@ public class Task<TResult> {
    *          scheduled on a different thread).
    */
   private static <TContinuationResult, TResult> void completeAfterTask(
-      final com.anchorfree.bolts.TaskCompletionSource<TContinuationResult> tcs,
-      final Continuation<TResult, Task<TContinuationResult>> continuation,
-      final Task<TResult> task, final Executor executor,
-      final CancellationToken ct) {
+      @NonNull final com.anchorfree.bolts.TaskCompletionSource<TContinuationResult> tcs,
+      @NonNull final Continuation<TResult, Task<TContinuationResult>> continuation,
+      final Task<TResult> task, @NonNull final Executor executor,
+      @Nullable final CancellationToken ct) {
     try {
       executor.execute(new Runnable() {
         @Override
@@ -919,8 +961,9 @@ public class Task<TResult> {
               tcs.setResult(null);
             } else {
               result.continueWith(new Continuation<TContinuationResult, Void>() {
+                @Nullable
                 @Override
-                public Void then(Task<TContinuationResult> task) {
+                public Void then(@NonNull Task<TContinuationResult> task) {
                   if (ct != null && ct.isCancellationRequested()) {
                     tcs.setCancelled();
                     return null;
@@ -983,7 +1026,7 @@ public class Task<TResult> {
   /**
    * Sets the result on the Task if the Task hasn't already been completed.
    */
-  /* package */ boolean trySetResult(TResult result) {
+  /* package */ boolean trySetResult(@Nullable TResult result) {
     synchronized (lock) {
       if (complete) {
         return false;
@@ -1024,8 +1067,8 @@ public class Task<TResult> {
     }
   }
 
-  private static Task<?> TASK_NULL = new Task<>(null);
-  private static Task<Boolean> TASK_TRUE = new Task<>((Boolean) true);
-  private static Task<Boolean> TASK_FALSE = new Task<>((Boolean) false);
-  private static Task<?> TASK_CANCELLED = new Task(true);
+  @NonNull private static Task<?> TASK_NULL = new Task<>(null);
+  @NonNull private static Task<Boolean> TASK_TRUE = new Task<>((Boolean) true);
+  @NonNull private static Task<Boolean> TASK_FALSE = new Task<>((Boolean) false);
+  @NonNull private static Task<?> TASK_CANCELLED = new Task(true);
 }

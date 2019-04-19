@@ -9,6 +9,8 @@
  */
 package com.anchorfree.bolts;
 
+import android.support.annotation.Nullable;
+
 /**
  * A function to be called after a task completes.
  *
@@ -18,5 +20,6 @@ package com.anchorfree.bolts;
  * @see Task
  */
 public interface Continuation<TTaskResult, TContinuationResult> {
+  @Nullable
   TContinuationResult then(Task<TTaskResult> task) throws Exception;
 }
